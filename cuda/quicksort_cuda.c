@@ -1,8 +1,10 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
-#include "my_timers.h"
 
+#include "timers/my_timers.h"
+
+#define SIZE 2000000
 
 void swap(int* a, int* b) {
   int tmp = *a;
@@ -35,18 +37,30 @@ void quickSort(int* arr, int minIndex, int maxIndex) {
   quickSort(arr, pivot+1, maxIndex);
 }
 
-#define SIZE 2000000
+void sortedTest(int* arr, int size) {
+  int resultFlag = 1;
+  for (int i = 0; i < size-1; i++) {
+    if (arr[i] > arr[i+1]) {
+      resultFlag = 0;
+    }
+  }
+  if (resultFlag) {
+    printf("SUCCESS: Array sorted succesfully\n");
+  }
+  else {
+    printf("FAIL: Array is not sorted\n");
+  }
+}
+
+
 
 int main() {
   srand(time(NULL)); //init pseudo random seed
   
   int arr[SIZE];
-//  printf("UNSORTED:\n[ ");
   for (int i = 0; i < SIZE; i++) {
     arr[i] = rand()%1000000 + 1; // numbers in range 1-1000000
-//    printf("%d ", arr[i]);
   }
-//  printf("]\n");
   
   /*SORTING START*/
   start_time();
@@ -54,11 +68,7 @@ int main() {
   stop_time();
   /*SORTING END*/
   
-//  printf("SORTED:\n[ ");
-//  for (int i = 0; i < SIZE; i++) {
-//    printf("%d ", arr[i]);
-//  }
-//  printf("]\n");
+  sortedTest(arr, SIZE);
   
   print_time("Elapsed:");
   
