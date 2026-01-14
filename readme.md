@@ -50,6 +50,9 @@ Implementacja z użyciem **CUDA** umożliwia przyspieszenie algorytmu na kartach
     ```
 3. CUDA:
       ```bash
-      todo
+    cd labwork/project/cuda
+    module add cuda/12.2.0
+    nvcc -rdc=true -arch=sm_70 -O3 quicksort_cuda.cu my_timers.c -o quicksort_cuda
       ```
 ---
+
