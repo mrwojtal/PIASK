@@ -14,11 +14,10 @@ Implementacja z użyciem **OpenMP (OMP)** wykorzystuje wielowątkowość proceso
 - Równoległe sortowanie partycji tablicy  
 - Dynamiczne przydzielanie zadań do wątków  
 - Skalowalność zależna od liczby rdzeni procesora  
-
-Projekt implementuje algorytm Quicksort w wersji równoległej z wykorzystaniem mechanizmu OpenMP tasks.
-Po każdej operacji partycjonowania tworzone są dwa niezależne zadania sortujące podtablice.
-Dyrektywy parallel i single zapewniają jednorazowe rozpoczęcie generowania zadań oraz ich równoległe wykonanie.
-Synchronizacja realizowana jest przez taskwait, gwarantując poprawność algorytmu.
+Projekt implementuje algorytm Quicksort w wersji równoległej z wykorzystaniem mechanizmu OpenMP tasks.  
+Po każdej operacji partycjonowania tworzone są dwa niezależne zadania sortujące podtablice.  
+Dyrektywy `parallel` i `single` zapewniają jednorazowe rozpoczęcie generowania zadań oraz ich równoległe wykonanie.  
+Synchronizacja realizowana jest przez `taskwait`, gwarantując poprawność algorytmu.
 ---
 
 ## MPI
@@ -59,6 +58,7 @@ Implementacja z użyciem **CUDA** umożliwia przyspieszenie algorytmu na kartach
     nvcc -rdc=true -arch=sm_70 -O3 quicksort_cuda.cu my_timers.c -o quicksort_cuda
       ```
 ---
+
 
 
 
