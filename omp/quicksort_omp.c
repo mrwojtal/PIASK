@@ -7,8 +7,8 @@
 #include "timers/my_timers.h"
 
 #define SIZE 2000000
-#define CUTOFF 4096
-
+#define CUTOFF 4096   // Threshold below which sequential quicksort is used
+                     // to avoid excessive task creation overhead
 
 void swap(int* a, int* b) {
   int tmp = *a;
@@ -17,22 +17,20 @@ void swap(int* a, int* b) {
 }
 
 int partition(int* arr, int minIndex, int maxIndex) {
-  //initial pivot is maxIndex
-  //int pivot = arr[maxIndex];
   int i = minIndex-1;
   int j = minIndex;
-  
+
   do {
     if (arr[j] < arr[maxIndex]) {
       i++;
-      swap(&arr[j], &arr[i]); //place elements higher than pivot at the right side of the pivot
+      swap(&arr[j], &arr[i]); // Move elements smaller than pivot to the left
     }
     j++;
   }
   while(j <= maxIndex-1);
-  
-  swap(&arr[i+1], &arr[maxIndex]); //place pivot in right spot
-  return i+1; //return pivot index
+
+  swap(&arr[i+1], &arr[maxIndex]); // Place pivot in its final position
+  return i+1;
 }
 
 void quickSortSeq(int* arr, int minIndex, int maxIndex) {
@@ -44,26 +42,34 @@ void quickSortSeq(int* arr, int minIndex, int maxIndex) {
 
 void quickSortTasks(int* arr, int minIndex, int maxIndex) {
   if (minIndex >= maxIndex) return;
-  
+
+  // For small subarrays, use sequential version to reduce task overhead
   if (maxIndex-minIndex <= CUTOFF) {
     return quickSortSeq(arr, minIndex, maxIndex);
   }
-  else { 
+  else {
     int pivot = partition(arr, minIndex, maxIndex);
 
-      #pragma omp task shared(arr) 
-        quickSortTasks(arr, minIndex, pivot-1);      
-      
-      #pragma omp task shared(arr)
-        quickSortTasks(arr, pivot+1, maxIndex);
-        
-      #pragma omp taskwait
+    // Create a new OpenMP task for the left subarray
+    // The task may be executed by any available thread
+    #pragma omp task shared(arr)
+      quickSortTasks(arr, minIndex, pivot-1);
+
+    // Create a new OpenMP task for the right subarray
+    #pragma omp task shared(arr)
+      quickSortTasks(arr, pivot+1, maxIndex);
+
+    // Wait until both child tasks are completed
+    #pragma omp taskwait
   }
 }
 
 void quickSortOMP(int* arr, int minIndex, int maxIndex) {
+  // Start a parallel region with a team of threads
   #pragma omp parallel
   {
+    // Ensure only one thread creates the initial task tree
+    // Other threads will execute generated tasks
     #pragma omp single
       quickSortTasks(arr, minIndex, maxIndex);
   }
@@ -84,26 +90,23 @@ void sortedTest(int* arr, int size) {
   }
 }
 
-
 int main() {
-  srand(time(NULL)); //init pseudo random seed
-  
+  srand(time(NULL));
+
   int arr[SIZE];
   for (int i = 0; i < SIZE; i++) {
-    arr[i] = rand()%1000000 + 1; // numbers in range 1-1000000
+    arr[i] = rand()%1000000 + 1;
   }
-  
+
+  // Use the maximum number of available OpenMP threads
   omp_set_num_threads(omp_get_max_threads());
-  
-  /*SORTING START*/
+
   start_time();
   quickSortOMP(arr, 0, SIZE-1);
   stop_time();
-  /*SORTING END*/
-  
+
   sortedTest(arr, SIZE);
-  
   print_time("Elapsed:");
-  
+
   return 0;
 }
