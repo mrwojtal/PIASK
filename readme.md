@@ -61,3 +61,4 @@ Implementacja z użyciem **CUDA** umożliwia przyspieszenie algorytmu na kartach
 ---
 
 
+
