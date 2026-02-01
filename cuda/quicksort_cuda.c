@@ -7,9 +7,9 @@ extern "C" {
     #include "my_timers.h"
 }
 
-#define SIZE 2000000
+#define SIZE (1 << 21) 
+#define THREADS_PER_BLOCK 256
 
-// Helper function to check for CUDA errors
 void checkCudaError(cudaError_t err, const char* msg) {
     if (err != cudaSuccess) {
         fprintf(stderr, "CUDA Error: %s: %s\n", msg, cudaGetErrorString(err));
@@ -17,70 +17,31 @@ void checkCudaError(cudaError_t err, const char* msg) {
     }
 }
 
-__device__ void swap_device(int* a, int* b) {
-    int tmp = *a;
-    *a = *b;
-    *b = tmp;
-}
+__global__ void bitonic_sort_step(int *dev_values, int j, int k) {
+    unsigned int i, ixj; 
 
-__device__ int partition_device(int* arr, int minIndex, int maxIndex) {
-    int i = minIndex - 1;
-    int j = minIndex;
+    i = threadIdx.x + blockDim.x * blockIdx.x;
 
-    // pivotValue jako ostatni element
-    int pivotValue = arr[maxIndex];
+    ixj = i ^ k; 
 
-    do {
-        if (arr[j] < pivotValue) {
-            i++;
-            swap_device(&arr[j], &arr[i]);
-        }
-        j++;
-    } while (j <= maxIndex - 1);
+    if (ixj > i && ixj < SIZE) {
 
-    swap_device(&arr[i + 1], &arr[maxIndex]);
-    return i + 1;
-}
+        bool ascending = ((i & j) == 0);
+        
+        int val1 = dev_values[i];
+        int val2 = dev_values[ixj];
 
-// Pomocnicza funkcja sortująca małe fragmenty lokalnie bez tworzenia nowych kerneli
-__device__ void selectionSort_device(int* arr, int size) {
-    for (int i = 0; i < size - 1; ++i) {
-        int minIdx = i;
-        for (int j = i + 1; j < size; ++j) {
-            if (arr[j] < arr[minIdx]) minIdx = j;
-        }
-        swap_device(&arr[i], &arr[minIdx]);
-    }
-}
-
-__global__ void quickSortKernel(int* arr, int minIndex, int maxIndex) {
-
-    if (minIndex >= maxIndex) return;
-
-    while (minIndex < maxIndex) {
-        int size = maxIndex - minIndex + 1;
-        if (size <= 32) {
-            selectionSort_device(arr + minIndex, size);
-            return;
-        }
-
-        int pivot = partition_device(arr, minIndex, maxIndex);
-
-        int leftSize = pivot - minIndex;     
-        int rightSize = maxIndex - pivot;   
-
-        if (leftSize < rightSize) {
-            if (leftSize > 0) {
-                quickSortKernel<<<1, 1>>>(arr, minIndex, pivot - 1);
+        if (ascending) {
+            if (val1 > val2) {
+                dev_values[i] = val2;
+                dev_values[ixj] = val1;
             }
-            minIndex = pivot + 1;
         } else {
-            if (rightSize > 0) {
-                quickSortKernel<<<1, 1>>>(arr, pivot + 1, maxIndex);
+            if (val1 < val2) {
+                dev_values[i] = val2;
+                dev_values[ixj] = val1;
             }
-            maxIndex = pivot - 1;
         }
-
     }
 }
 
@@ -89,6 +50,7 @@ void sortedTest(int* arr, int size) {
     for (int i = 0; i < size - 1; i++) {
         if (arr[i] > arr[i + 1]) {
             resultFlag = 0;
+            printf("Fail at index %d: %d > %d\n", i, arr[i], arr[i+1]);
             break;
         }
     }
@@ -101,16 +63,12 @@ void sortedTest(int* arr, int size) {
 
 int main() {
     srand((unsigned)time(NULL));
-    
+
     int dev = 0;
     cudaDeviceProp prop;
     checkCudaError(cudaGetDevice(&dev), "cudaGetDevice");
     checkCudaError(cudaGetDeviceProperties(&prop, dev), "cudaGetDeviceProperties");
-    printf("GPU: %s (compute capability %d.%d)\n", prop.name, prop.major, prop.minor);
-    if (prop.major < 3 || (prop.major == 3 && prop.minor < 5)) {
-        fprintf(stderr, "Error: GPU does not support Dynamic Parallelism (requires compute capability >= 3.5)\n");
-        return EXIT_FAILURE;
-    }
+    printf("GPU: %s\n", prop.name);
 
     int* h_arr = (int*)malloc(SIZE * sizeof(int));
     if (!h_arr) {
@@ -122,20 +80,23 @@ int main() {
         h_arr[i] = rand() % 1000000 + 1;
     }
 
-    printf("Sorting array of size %d using CUDA Dynamic Parallelism...\n", SIZE);
-
     int* d_arr;
     checkCudaError(cudaMalloc((void**)&d_arr, SIZE * sizeof(int)), "cudaMalloc");
-
     checkCudaError(cudaMemcpy(d_arr, h_arr, SIZE * sizeof(int), cudaMemcpyHostToDevice), "cudaMemcpy H2D");
+
+    dim3 blocks(SIZE / THREADS_PER_BLOCK); 
+    dim3 threads(THREADS_PER_BLOCK);
 
     start_time();
 
-    quickSortKernel<<<1, 1>>>(d_arr, 0, SIZE - 1);
+    for (int j = 2; j <= SIZE; j <<= 1) {
+        for (int k = j >> 1; k > 0; k = k >> 1) {
+            bitonic_sort_step<<<blocks, threads>>>(d_arr, j, k);
+        }
+    }
 
-    checkCudaError(cudaGetLastError(), "Kernel launch quickSortKernel");
-
-    checkCudaError(cudaDeviceSynchronize(), "cudaDeviceSynchronize");
+    checkCudaError(cudaGetLastError(),"");
+    checkCudaError(cudaDeviceSynchronize(),"");
 
     stop_time();
 
