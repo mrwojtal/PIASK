@@ -1,39 +1,43 @@
-# Projekt PIASK
+# PIASK Project
 
-Projekt **PIASK** jest implementacją algorytmu **Quicksort** z wykorzystaniem różnych technologii równoległego przetwarzania: **OpenMP (OMP)**, **MPI** oraz **CUDA**.  
+The **PIASK** project is an implementation of the **Quicksort** algorithm using various parallel processing technologies: **OpenMP (OMP)**, **MPI**, and **CUDA**.
 
-## Opis projektu
-Celem projektu jest implementacja algorytmu **Quicksort** w różnych środowiskach równoległych w celu porównania wydajności i efektywności przy różnych metodach paralelizacji.  
+## Project Description
 
-Algorytm Quicksort jest znanym algorytmem sortowania typu **divide and conquer**, który w wersji równoległej pozwala na efektywne wykorzystanie nowoczesnych procesorów i kart graficznych.  
+The goal of the project is to implement the **Quicksort** algorithm in different parallel environments in order to compare performance and efficiency across various parallelization methods.
+
+Quicksort is a well-known **divide and conquer** sorting algorithm which, in its parallel form, allows efficient utilization of modern CPUs and GPUs.
 
 ---
 
 ## OMP
-Implementacja z użyciem **OpenMP (OMP)** wykorzystuje wielowątkowość procesora CPU.  
-- Równoległe sortowanie partycji tablicy  
-- Dynamiczne przydzielanie zadań do wątków  
-- Skalowalność zależna od liczby rdzeni procesora
+
+The **OpenMP (OMP)** implementation uses CPU multithreading.
+- Parallel sorting of array partitions
+- Dynamic task assignment to threads
+- Scalability dependent on the number of CPU cores
 
 ---
 
 ## MPI
-Implementacja z użyciem **MPI (Message Passing Interface)** pozwala na sortowanie w środowisku rozproszonym.  
-- Podział danych między węzły klastra  
-- Wymiana wyników między procesami  
-- Optymalizacja komunikacji w celu minimalizacji opóźnień  
+
+The **MPI (Message Passing Interface)** implementation enables sorting in a distributed environment.
+- Data distribution across cluster nodes
+- Exchange of results between processes
+- Communication optimization to minimize latency
 
 ---
 
 ## CUDA
-Implementacja z użyciem **CUDA** umożliwia przyspieszenie algorytmu na kartach graficznych NVIDIA.  
-- Wykorzystanie tysięcy wątków GPU do równoległego sortowania  
-- Minimalizacja transferu danych między CPU a GPU  
-- Optymalizacja pamięci współdzielonej i globalnej  
+
+The **CUDA** implementation enables acceleration of the algorithm on NVIDIA GPUs.
+- Utilization of thousands of GPU threads for parallel sorting
+- Minimization of data transfers between CPU and GPU
+- Optimization of shared and global memory usage
 
 ---
 
-## Instrukcja uruchomienia
+## How to Run
 1. OMP:
     ```bash
     cd labwork/project/omp
@@ -55,6 +59,7 @@ Implementacja z użyciem **CUDA** umożliwia przyspieszenie algorytmu na kartach
     nvcc -rdc=true -arch=sm_70 -O3 quicksort_cuda.cu my_timers.c -o quicksort_cuda
       ```
 ---
+
 
 
 
